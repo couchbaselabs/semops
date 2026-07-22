@@ -1,16 +1,10 @@
-# semops: building semantic operators on GSI vector indexes
+# semops: semantic operators over vector-indexed data
 
 **Semantic operators** are `WHERE` / `JOIN` / `GROUP BY` whose condition is written in
-plain English and judged by an LLM. They are the frontier of query, and done the obvious
-way they are unusable: one LLM call per row, or per pair for a join, so a 10,000 × 10,000
-join is 100 million calls.
+plain English and judged by an LLM. They are the frontier of query, and done the obvious way they are unusable: one LLM call per row, or per pair for a join, so a 10,000 × 10,000 join is 100 million calls.
 
-This project studies one claim, from the index's point of view: **a GSI vector index is
-the primitive that makes semantic operators affordable.** The index does the bulk of the
-work, narrowing a whole collection down to the few rows the LLM must actually judge, and
-the LLM is spent only where the index cannot decide on its own. The rest of this document
-is the mapping from each operator to the index capability that powers it, with what each is
-worth measured on a live cluster.
+This project uses vector indexes as the primitive that makes semantic operators affordable. The index does the bulk of the work, narrowing a whole collection down to the few rows the LLM must actually judge, and
+the LLM is spent only where the index cannot decide on its own.  
 
 | operator | the GSI capability it runs on |
 |---|---|
@@ -19,43 +13,60 @@ worth measured on a live cluster.
 | `sem_dedup` | the same, run as a self-join |
 | `sem_group_by` | the geometry of the stored vectors (k-means, no LLM at all) |
 
-The honest boundary is in [Why not only vector search](#why-not-only-vector-search): the
-index is the retrieval engine, it is not the decision procedure. Getting that division of
-labour right is the whole design, and [How GSI vector indexes were leveraged](#how-gsi-vector-indexes-were-leveraged)
-is where the index features do the heavy lifting.
+The honest boundary is in [Why not only vector search](#why-not-only-vector-search): the index is the retrieval engine, it is not the decision procedure. Getting that division of labour right is the crux of the design.
 
 ---
 
 ## Quickstart
 
-One command. It creates a collection, loads 1,000 labelled movie reviews with
-local embeddings, builds the vector indexes, and runs `sem_filter` for *"this is a
-negative movie review"* against your cluster.
+Get semops filtering a Couchbase collection by an English predicate in **one
+command**. No API key needed to start.
 
-**1. A Couchbase cluster with vector-index support.** Any of:
+### 1. A Couchbase cluster with vector-index support
 
-- **Docker** (Enterprise 7.6.4+): `docker run -d --name cb -p 8091-8096:8091-8096 -p 11210:11210 couchbase/server:enterprise`, then open `http://localhost:8091`, finish setup, and create a bucket named `default`.
-- **Capella** free tier — has vector search built in.
-- **`cluster_run`** dev build — the default the examples assume.
+You need a running cluster and a bucket to write into (`default` is fine). Any of:
 
-**2. Install:**
+- **Docker** (Couchbase Enterprise 7.6.4+):
+  ```bash
+  docker run -d --name cb -p 8091-8096:8091-8096 -p 11210:11210 couchbase/server:enterprise
+  ```
+  Open `http://localhost:8091`, finish the setup wizard, and create a bucket named `default`.
+- **Capella** — the free tier includes vector search; use its host and credentials.
+- **`cluster_run`** — the dev build the examples default to.
+
+### 2. Install
+
+The package uses a `src/` layout, so install it (editable) before importing:
 
 ```bash
-pip install -e .
-pip install -r examples/requirements.txt
+pip install -e .                            # the semops library, zero core deps
+pip install -r examples/requirements.txt    # sklearn / fastembed / datasets, for the examples
 ```
 
-**3. Run.** Point it at your cluster with env vars (defaults are `cluster_run`;
-stock Couchbase uses ports 8093/8091):
+### 3. Run
+
+`examples/quickstart.py` creates a collection, loads 1,000 labelled movie reviews
+with local embeddings, builds the vector indexes, and runs `sem_filter` for
+*"this is a negative movie review"*. It reads the connection from the environment,
+so it works against any cluster:
+
+| variable | default (`cluster_run`) | stock Couchbase Server |
+|---|---|---|
+| `CB_QUERY_URL` | `http://localhost:9499` | `http://localhost:8093` |
+| `CB_REST_URL` | `http://localhost:9000` | `http://localhost:8091` |
+| `CB_USER` / `CB_PASSWORD` | `Administrator` / `asdasd` | your credentials |
+| `CB_BUCKET` | `default` | your bucket |
 
 ```bash
-# cluster_run (defaults, nothing to set):
+# cluster_run — nothing to set:
 python examples/quickstart.py
 
 # stock Couchbase Server (Docker / Capella / self-managed):
 CB_QUERY_URL=http://localhost:8093 CB_REST_URL=http://localhost:8091 \
 CB_PASSWORD=yourpassword python examples/quickstart.py
 ```
+
+which prints:
 
 ```
 oracle: stored label (no API key set). export GEMINI_API_KEY or OPENAI_API_KEY for the real LLM.
@@ -64,21 +75,22 @@ quality   P=1.000  R=0.942  F1=0.970   — the cascade reproduced the oracle's v
 cost      692 oracle calls instead of 1000  (1.45x fewer)
 ```
 
-**The oracle is the point — so plug in a real one.** By default the quickstart
-uses the *stored label* as the oracle: zero keys, deterministic, and for this
-predicate the label is exactly what a good LLM would say. But that stubs the one
-thing semantic operators are actually about — an LLM reading the text. Set a key
-and the quickstart judges each escalated row with a real model instead (embeddings
-stay local, so only a chat model is needed):
+### 4. Use a real LLM (the whole point)
+
+By default the oracle is the *stored label*: zero keys, deterministic, and for this
+predicate the label is exactly what a good LLM would say — but it stubs the one
+thing semantic operators are actually about, an LLM reading the text and deciding.
+Set a key and each escalated row is judged by a real model instead (embeddings stay
+local, so only a chat model is needed):
 
 ```bash
-GEMINI_API_KEY=... python examples/quickstart.py   # or OPENAI_API_KEY
+GEMINI_API_KEY=...  python examples/quickstart.py    # or OPENAI_API_KEY
 ```
 
-Drop the demo data with `python examples/quickstart.py --cleanup`.
+Clean up the demo data with `python examples/quickstart.py --cleanup`.
 
-No cluster handy? [`examples/tour.py`](examples/tour.py) runs every operator
-fully offline, no cluster and no keys.
+**No cluster handy?** `python examples/tour.py` runs every operator fully offline —
+no cluster, no keys — on the ticket data used throughout this README.
 
 ---
 
@@ -93,8 +105,8 @@ Language (plain English) and judged by a language model:
 | relational | semantic |
 |---|---|
 | `WHERE price > 100` | `WHERE "the customer is threatening to cancel"` |
-| `JOIN ON a.id = b.id` | `JOIN ON "this ticket is caused by this known issue"` |
-| `GROUP BY category` | `GROUP BY "whatever themes these fall into"` |
+| `JOIN ON a.id = b.id` | `JOIN ON "this ticket is caused by this known issue [A]"` |
+| `GROUP BY category` | `GROUP BY "Positive reviews of movie B"` |
 
 The idea and the naming come from **LOTUS** (Patel et al., *Semantic Operators*,
 VLDB 2025), which formalised `sem_filter` / `sem_join` / `sem_topk` / `sem_agg` and
@@ -375,11 +387,8 @@ per cluster to name it. `k` is yours to choose.
 ## How GSI vector indexes were leveraged
 
 This is the heart of the project. Almost all of the heavy lifting is done by the Couchbase
-**Hyperscale Vector index** (`IVF,SQ8`) and the query engine's `APPROX_VECTOR_DISTANCE`;
-semops mostly points those primitives at a problem they were not built for and finds they
-already handle it. Five capabilities carry the four operators, each measured on a live
-cluster over 384-dimensional BGE vectors.
-
+**Hyperscale Vector index** (`IVF,SQ8`) and `APPROX_VECTOR_DISTANCE`;
+ 
 ### 1. Blocking is a one-line ANN pushdown
 
 `sem_join` needs the top-`block_k` right rows for each left row. Because
@@ -513,13 +522,13 @@ it would actually do (it could perform worse).
 
 | benchmark | task | vector-only | **semops** | cost |
 |---|---|---|---|---|
-| 20 Newsgroups (live Couchbase) | topic filter | F1 0.914 | **0.978** | 5.39× fewer calls |
-| Rotten Tomatoes (live Couchbase) | polarity filter | F1 **0.661** (P=0.499) | **0.987** | 1.30× fewer calls |
-| AG News 50k (live Couchbase) | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** | 5.18× fewer calls |
+| 20 Newsgroups (Couchbase) | topic filter | F1 0.914 | **0.978** | 5.39× fewer calls |
+| Rotten Tomatoes (Couchbase) | polarity filter | F1 **0.661** (P=0.499) | **0.987** | 1.30× fewer calls |
+| AG News 50k (Couchbase) | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** | 5.18× fewer calls |
 | **Emails** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** | 110 vs 1000 calls |
 | **BioDEX** (LOTUS/Abacus corpus) | paper ↔ reaction join | F1 **0.21** | **1.00** | 350 vs 48,600 (**139×**) |
-| 20NG (live Couchbase) | `sem_group_by`, 7 topics | n/a | purity **0.900** | **0 LLM calls** |
-| 20NG (live Couchbase) | `sem_dedup` | n/a | purity **1.000** | 37.7× fewer |
+| 20NG (Couchbase) | `sem_group_by`, 7 topics | n/a | purity **0.900** | **0 LLM calls** |
+| 20NG (Couchbase) | `sem_dedup` | n/a | purity **1.000** | 37.7× fewer |
 
 Across all of them the cascade stays close to what asking the LLM about every row would
 have given, and blocking recall, not the cascade, is what limits join quality.
@@ -635,11 +644,10 @@ under ANN: at `nProbes=8` on 50k rows it reported `exhaustive=True` at recall 0.
 
 ## Running it
 
-The library uses a `src/` layout, so install it first (the core has no
-dependencies; the examples need the extras):
+The library uses a `src/` layout, so install it first:
 
 ```bash
-pip install -e .            # the semops package itself, stdlib-only
+pip install -e .
 pip install -r examples/requirements.txt   # sklearn / fastembed / datasets, for the examples
 ```
 
@@ -658,15 +666,15 @@ deterministic and you can see what each operator decides.
 Against a real cluster and a real model:
 
 ```bash
-./.venv/bin/python examples/cb_ingest.py --dataset rotten --n 2000  # load + index
-./.venv/bin/python examples/eval_couchbase.py                       # measured vs labels
-./.venv/bin/python examples/verify_gsi_paths.py                     # the GSI fast paths
-./.venv/bin/python examples/bench_emails.py --oracle truth          # Trummer's join benchmark
-./.venv/bin/python examples/bench_biodex.py --oracle truth          # LOTUS/Abacus corpus
+python examples/quickstart.py                           # one command, live cluster, no keys
+python examples/cb_ingest.py --dataset rotten --n 2000  # load + index
+python examples/eval_couchbase.py                       # measured vs labels
+python examples/verify_gsi_paths.py                     # the GSI fast paths
+python examples/bench_emails.py --oracle truth          # Trummer's join benchmark
+python examples/bench_biodex.py --oracle truth          # LOTUS/Abacus corpus
 ```
-
 
 Deeper notes live in `docs/`: [`sem_filter.md`](docs/sem_filter.md),
 [`sem_join.md`](docs/sem_join.md),
 [`sem_dedup_and_group_by.md`](docs/sem_dedup_and_group_by.md), and
-[`gsi_notes.md`](docs/gsi_notes.md).
+[`gsi_notes.md`](docs/gsi_notes.md)
