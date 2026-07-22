@@ -184,7 +184,6 @@ def main():
     print("5/5  sem_filter: \"" + PREDICATE + "\"")
     eng = CouchbaseEngine("", USER, PW, BUCKET, SCOPE, cluster=q, nprobes=8)
     model = make_oracle(emb, dict(zip(texts, labels)))
-    real_llm = model.chat_model != "label-oracle"
     print()
     sess = semops.connect(engine=eng, model=model, workers=8)
     res = sess.scan(COLL).sem_filter(PREDICATE, proxy_model=SklearnLRProxy(),
@@ -197,20 +196,18 @@ def main():
     st = res.stats()
     n = st["n_rows"]
     savings = n / max(st["llm_calls"], 1)
-    # F1 is always measured against the human labels. With the label oracle that
-    # measures how faithfully the cascade reproduced the oracle; with a real LLM it
-    # measures how well the LLM+cascade agrees with the humans (the LLM may differ).
-    vs = "how well the LLM agrees with the human labels" if real_llm \
-        else "the cascade reproduced the oracle's verdicts"
+    # F1 is measured against the human labels. With the label oracle it shows how
+    # closely the cascade matched the oracle; with a real LLM it shows how well the
+    # LLM agrees with the human labels (the LLM may differ).
     print(f"  kept {len(kept)} of {n} rows as negative reviews.")
-    print(f"  quality   P={p:.3f}  R={r:.3f}  F1={f:.3f}   — {vs}")
+    print(f"  quality   P={p:.3f}  R={r:.3f}  F1={f:.3f}")
     print(f"  cost      {st['llm_calls']} oracle calls instead of {n}  ({savings:.2f}x fewer)")
     print(f"  bands     accept={st['n_accept']}  escalate={st['n_escalate']}  reject={st['n_reject']}")
     print("\n  a few rows it kept:")
     for rid in list(kept)[:3]:
         print(f"    - {texts[int(rid[1:])][:70]}")
 
-    print("\n  Note: polarity is the low-savings case — about half the corpus is the")
+    print("\n  Note: polarity is the low-savings case. About half the corpus is the")
     print("  answer, so only the reject band is free. Selective predicates reach")
     print("  5-6x; see the benchmarks in the README.")
     print("\ndone. drop the demo data with:  python examples/quickstart.py --cleanup")

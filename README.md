@@ -19,20 +19,21 @@ The honest boundary is in [Why not only vector search](#why-not-only-vector-sear
 
 ## Quickstart
 
-Get semops filtering a Couchbase collection by an English predicate in **one
-command**. No API key needed to start.
+Run `sem_filter` on a Couchbase collection in one command. The default run needs
+no API key.
 
-### 1. A Couchbase cluster with vector-index support
+### 1. A Couchbase cluster
 
-You need a running cluster and a bucket to write into (`default` is fine). Any of:
+You need a running cluster with vector-index support and a bucket to write into
+(`default` is fine). Any of:
 
 - **Docker** (Couchbase Enterprise 7.6.4+):
   ```bash
   docker run -d --name cb -p 8091-8096:8091-8096 -p 11210:11210 couchbase/server:enterprise
   ```
   Open `http://localhost:8091`, finish the setup wizard, and create a bucket named `default`.
-- **Capella** — the free tier includes vector search; use its host and credentials.
-- **`cluster_run`** — the dev build the examples default to.
+- **Capella**: the free tier includes vector search. Use its host and credentials.
+- **`cluster_run`**: the dev build the examples default to.
 
 ### 2. Install
 
@@ -58,7 +59,7 @@ so it works against any cluster:
 | `CB_BUCKET` | `default` | your bucket |
 
 ```bash
-# cluster_run — nothing to set:
+# cluster_run (nothing to set):
 python examples/quickstart.py
 
 # stock Couchbase Server (Docker / Capella / self-managed):
@@ -66,22 +67,21 @@ CB_QUERY_URL=http://localhost:8093 CB_REST_URL=http://localhost:8091 \
 CB_PASSWORD=yourpassword python examples/quickstart.py
 ```
 
-which prints:
+It prints:
 
 ```
 oracle: stored label (no API key set). export GEMINI_API_KEY or OPENAI_API_KEY for the real LLM.
 kept 471 of 1000 rows as negative reviews.
-quality   P=1.000  R=0.942  F1=0.970   — the cascade reproduced the oracle's verdicts
+quality   P=1.000  R=0.942  F1=0.970
 cost      692 oracle calls instead of 1000  (1.45x fewer)
 ```
 
-### 4. Use a real LLM (the whole point)
+### 4. Use a real LLM
 
-By default the oracle is the *stored label*: zero keys, deterministic, and for this
-predicate the label is exactly what a good LLM would say — but it stubs the one
-thing semantic operators are actually about, an LLM reading the text and deciding.
-Set a key and each escalated row is judged by a real model instead (embeddings stay
-local, so only a chat model is needed):
+By default the oracle is the stored label. This needs no key and is the same every
+run, but it does not call an LLM: for this predicate the label is already the
+answer. To have a real model read each row and decide, set a key. Embeddings are
+still computed locally, so you only need a chat model:
 
 ```bash
 GEMINI_API_KEY=...  python examples/quickstart.py    # or OPENAI_API_KEY
@@ -89,8 +89,8 @@ GEMINI_API_KEY=...  python examples/quickstart.py    # or OPENAI_API_KEY
 
 Clean up the demo data with `python examples/quickstart.py --cleanup`.
 
-**No cluster handy?** `python examples/tour.py` runs every operator fully offline —
-no cluster, no keys — on the ticket data used throughout this README.
+No cluster? `python examples/tour.py` runs every operator offline, with no cluster
+and no keys, on the ticket data used throughout this README.
 
 ---
 
