@@ -1,7 +1,7 @@
 # semops: semantic operators over vector-indexed data
 
 **Semantic operators** are `WHERE` / `JOIN` / `GROUP BY` whose condition is written in
-plain English and judged by an LLM. They are the frontier of query, and done the obvious way they are unusable: one LLM call per row, or per pair for a join, so a 10,000 × 10,000 join is 100 million calls.
+natural language and judged by an LLM. They are the frontier of query, and done the obvious way they are unusable: one LLM call per row, or per pair for a join, so a 10,000 × 10,000 join is 100 million calls.
 
 This project uses vector indexes as the primitive that makes semantic operators affordable. The index does the bulk of the work, narrowing a whole collection down to the few rows the LLM must actually judge, and
 the LLM is spent only where the index cannot decide on its own.  
