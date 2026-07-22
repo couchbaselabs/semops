@@ -106,7 +106,7 @@ Language (plain English) and judged by a language model:
 |---|---|
 | `WHERE price > 100` | `WHERE "the customer is threatening to cancel"` |
 | `JOIN ON a.id = b.id` | `JOIN ON "this ticket is caused by this known issue [A]"` |
-| `GROUP BY category` | `GROUP BY "Positive reviews of movie B"` |
+| `GROUP BY category` | `GROUP BY "the product area the ticket is about"` |
 
 The idea and the naming come from **LOTUS** (Patel et al., *Semantic Operators*,
 VLDB 2025), which formalised `sem_filter` / `sem_join` / `sem_topk` / `sem_agg` and
