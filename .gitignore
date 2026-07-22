@@ -1,0 +1,26 @@
+# secrets / local env — never commit keys
+.env
+.env.*
+*.key
+secrets.*
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+
+# go build artifacts
+# (.gitignore has no inline comments — patterns must stand alone)
+*.test
+*.out
+go/semops
+vendor/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,11 @@
+# Dependencies for the examples and benchmarks only. The semops library core
+# itself has zero third-party dependencies (see pyproject.toml).
+#
+#   pip install -r examples/requirements.txt
+#
+# The live-cluster examples reach Couchbase over the Query REST API
+# (semops.HttpQueryCluster, stdlib urllib), so the couchbase SDK is not required.
+
+scikit-learn>=1.3   # the learned logistic-regression proxy
+fastembed>=0.3      # local BGE embeddings, no API key needed
+datasets>=2.14      # 20 Newsgroups / Rotten Tomatoes / AG News / BioDEX loaders

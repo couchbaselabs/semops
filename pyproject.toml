@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semops"
+version = "0.1.0"
+description = "Semantic operators over vector-indexed data — engine-agnostic core, Couchbase as a first-class native mode."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Couchbase" }]
+keywords = ["semantic-operators", "llm", "vector-search", "couchbase", "rag", "cascade"]
+dependencies = []  # core has ZERO hard deps (stdlib only)
+
+[project.optional-dependencies]
+couchbase = ["couchbase>=4.2"]
+dev = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["semops*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
