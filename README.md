@@ -13,7 +13,7 @@ the LLM is spent only where the index cannot decide on its own.
 | `sem_dedup` | the same, run as a self-join |
 | `sem_group_by` | the geometry of the stored vectors (k-means, no LLM at all) |
 
-The honest boundary is in [Why not only vector search](#why-not-only-vector-search): the index is the retrieval engine, it is not the decision procedure. Getting that division of labour right is the crux of the design.
+The discussion on [Why not only vector search](#why-not-only-vector-search): the index is the retrieval engine, it is not the decision procedure. Getting that division of labour right is the crux of the design.
 
 ---
 
@@ -27,13 +27,6 @@ no API key.
 You need a running cluster with vector-index support and a bucket to write into
 (`default` is fine). Any of:
 
-- **Docker** (Couchbase Enterprise 7.6.4+):
-  ```bash
-  docker run -d --name cb -p 8091-8096:8091-8096 -p 11210:11210 couchbase/server:enterprise
-  ```
-  Open `http://localhost:8091`, finish the setup wizard, and create a bucket named `default`.
-- **Capella**: the free tier includes vector search. Use its host and credentials.
-- **`cluster_run`**: the dev build the examples default to.
 
 ### 2. Install
 
@@ -48,8 +41,7 @@ pip install -r examples/requirements.txt    # sklearn / fastembed / datasets, fo
 
 `examples/quickstart.py` creates a collection, loads 1,000 labelled movie reviews
 with local embeddings, builds the vector indexes, and runs `sem_filter` for
-*"this is a negative movie review"*. It reads the connection from the environment,
-so it works against any cluster:
+*"this is a negative movie review"*.  
 
 | variable | default (`cluster_run`) | stock Couchbase Server |
 |---|---|---|
@@ -62,7 +54,7 @@ so it works against any cluster:
 # cluster_run (nothing to set):
 python examples/quickstart.py
 
-# stock Couchbase Server (Docker / Capella / self-managed):
+ 
 CB_QUERY_URL=http://localhost:8093 CB_REST_URL=http://localhost:8091 \
 CB_PASSWORD=yourpassword python examples/quickstart.py
 ```
@@ -76,7 +68,7 @@ quality   P=1.000  R=0.942  F1=0.970
 cost      692 oracle calls instead of 1000  (1.45x fewer)
 ```
 
-### 4. Use a real LLM
+### 4. Use an LLM
 
 By default the oracle is the stored label. This needs no key and is the same every
 run, but it does not call an LLM: for this predicate the label is already the
