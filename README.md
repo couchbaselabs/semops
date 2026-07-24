@@ -100,11 +100,11 @@ Language (plain English) and judged by a language model:
 | `JOIN ON a.id = b.id` | `JOIN ON "this ticket is caused by this known issue [A]"` |
 | `GROUP BY category` | `GROUP BY "the product area the ticket is about"` |
 
-The idea and the naming come from **LOTUS** (Patel et al., *Semantic Operators*,
+The idea and the naming come from [**LOTUS**](https://arxiv.org/abs/2407.11418) (Patel et al., *Semantic Operators*,
 VLDB 2025), which formalised `sem_filter` / `sem_join` / `sem_topk` / `sem_agg` and
 showed they can be *optimised* like relational operators. Related work is largely from:
-**DocETL** (agentic rewrites for document pipelines), **Palimpzest/Abacus**
-(cost-based optimisation for these operators), and **Trummer's semantic-join paper**
+**DocETL** (agentic rewrites for document pipelines), [**Palimpzest/Abacus**](https://arxiv.org/abs/2505.14661)
+(cost-based optimisation for these operators), and [**Trummer's semantic-join paper**](https://arxiv.org/abs/2510.08489)
 (arXiv 2510.08489), whose batching trick is borrowed directly.
 
 **Why they need optimising:** The obvious implementation, calling the LLM once per
@@ -226,7 +226,7 @@ sess.search("tickets", "problems with refunds", k=100)   # -> Pipeline
 On Couchbase this pushes down to `ORDER BY APPROX_VECTOR_DISTANCE(...) LIMIT k`
 against a Hyperscale Vector index (bhive). Use it to bound the candidate set before spending LLM.
 
-> **Not implemented:** LLM-based top-k re-ranking (`sem_topk` in LOTUS). `search`
+> **Not implemented:** LLM-based top-k re-ranking (`sem_topk` in [LOTUS](https://arxiv.org/abs/2407.11418)). `search`
 > gives you similarity order only.
 
 ### `sem_filter`: WHERE
@@ -518,7 +518,7 @@ embedded predicate at its best label-tuned threshold
 | [Rotten Tomatoes](https://huggingface.co/datasets/cornell-movie-review-data/rotten_tomatoes) | polarity filter | F1 **0.661** (P=0.499) | **0.987** |
 | [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) 50k | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** |
 | **[Emails](https://arxiv.org/abs/2510.08489)** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** |
-| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** (LOTUS/Abacus corpus) | paper to reaction join | F1 **0.21** | **1.00** |
+| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** ([LOTUS](https://arxiv.org/abs/2407.11418)/[Abacus](https://arxiv.org/abs/2505.14661) corpus) | paper to reaction join | F1 **0.21** | **1.00** |
 | [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_group_by`, 7 topics | n/a | purity **0.900** |
 | [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_dedup` | n/a | purity **1.000** |
 
