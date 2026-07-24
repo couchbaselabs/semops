@@ -497,12 +497,10 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 **How to read the `vector-only` column.** To filter with vector search alone you embed
 the predicate, score every row by cosine similarity to it, and keep the rows above some
-cut-off. The question is which cut-off. In production you would have to guess, and the
-guess decides your precision and recall.
+cut-off. The question is which cut-off.  
 
-We did not guess. We tried every cut-off and reported the one that scored the best F1
-against the true labels. That is only possible because we already had the answers, which
-a real system does not.
+Here a few cut-offs were tried and reported the one that scored the best F1
+against the true labels. 
 
 So read that column as a ceiling: the best vector search could possibly do here, not what
 it would actually do (it could perform worse).
