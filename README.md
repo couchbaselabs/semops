@@ -25,7 +25,7 @@ no API key.
 ### 1. A Couchbase cluster
 
 You need a running cluster with vector-index support and a bucket to write into
-(`default` is fine). Any of:
+(`default` is fine). 
 
 
 ### 2. Install
@@ -59,7 +59,7 @@ CB_QUERY_URL=http://localhost:8093 CB_REST_URL=http://localhost:8091 \
 CB_PASSWORD=yourpassword python examples/quickstart.py
 ```
 
-It prints:
+
 
 ```
 oracle: stored label (no API key set). export GEMINI_API_KEY or OPENAI_API_KEY for the real LLM.
@@ -655,7 +655,7 @@ deterministic and you can see what each operator decides.
 Against a real cluster and a real model:
 
 ```bash
-python examples/quickstart.py                           # one command, live cluster, no keys
+python examples/quickstart.py                            
 python examples/cb_ingest.py --dataset rotten --n 2000  # load + index
 python examples/eval_couchbase.py                       # measured vs labels
 python examples/verify_gsi_paths.py                     # the GSI fast paths
