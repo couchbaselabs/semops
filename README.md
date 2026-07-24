@@ -507,13 +507,13 @@ it would actually do (it could perform worse).
 
 | benchmark | task | vector-only | **semops** | cost |
 |---|---|---|---|---|
-| 20 Newsgroups  | topic filter | F1 0.914 | **0.978** | 5.39× fewer calls |
-| Rotten Tomatoes  | polarity filter | F1 **0.661** (P=0.499) | **0.987** | 1.30× fewer calls |
-| AG News 50k  | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** | 5.18× fewer calls |
-| **Emails** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** | 110 vs 1000 calls |
-| **BioDEX** (LOTUS/Abacus corpus) | paper ↔ reaction join | F1 **0.21** | **1.00** | 350 vs 48,600 (**139×**) |
-| 20NG | `sem_group_by`, 7 topics | n/a | purity **0.900** | **0 LLM calls** |
-| 20NG | `sem_dedup` | n/a | purity **1.000** | 37.7× fewer |
+| [20 Newsgroups](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | topic filter | F1 0.914 | **0.978** | 5.39× fewer calls |
+| [Rotten Tomatoes](https://huggingface.co/datasets/cornell-movie-review-data/rotten_tomatoes) | polarity filter | F1 **0.661** (P=0.499) | **0.987** | 1.30× fewer calls |
+| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) 50k | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** | 5.18× fewer calls |
+| **[Emails](https://arxiv.org/abs/2510.08489)** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** | 110 vs 1000 calls |
+| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** (LOTUS/Abacus corpus) | paper ↔ reaction join | F1 **0.21** | **1.00** | 350 vs 48,600 (**139×**) |
+| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_group_by`, 7 topics | n/a | purity **0.900** | **0 LLM calls** |
+| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_dedup` | n/a | purity **1.000** | 37.7× fewer |
 
 Across all of them the cascade stays close to what asking the LLM about every row would
 have given, and blocking recall, not the cascade, is what limits join quality.
