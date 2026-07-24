@@ -523,7 +523,6 @@ not what it would actually do.
 Across all of them the cascade stays close to what asking the LLM about every row would
 have given, and blocking recall, not the cascade, is what limits join quality.
 
-### Savings vs corpus size
 
 Calibration costs a fixed number of oracle calls, so on a small collection it eats
 the budget. AG News, 50k rows on a live cluster, `sem_filter` at recall/precision
