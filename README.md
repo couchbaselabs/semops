@@ -134,22 +134,17 @@ picking rows at random. We also chose that cut-off after seeing the answers, whi
 real system can do.
 
 A glowing review and a scathing one are about the same film, the same actors, the same
-plot. They are alike, and embeddings put alike things together. That is the job.
+plot. They are alike, and embeddings put alike things together.  
 
 **Retrieval isn't the gap/where careful consideration is required. Deciding is.** In our contradiction benchmark,
 embedding search pulled the contradicting email into the top 10 of 100 candidates every
 time, so retrieval was perfect. Judging those same candidates by embedding similarity
 scored 0.10 precision. It found the right rows and could not tell which ones matched.
 
-Embeddings narrow the field well. They do not give a verdict. semops keeps the first
+Embeddings narrow the field well. They do not give a verdict. with semantic operators, we keeps the first
 and replaces the second: the vector index picks who to ask about, the LLM answers.
 
-**When you don't need this:** If similarity already answers your predicate, use it. A 20
-Newsgroups topic filter scored F1 0.914 on cosine alone; semops reached 0.978 and charged
-you for the difference. But you can't predict that from how the predicate sounds. The
-same method on an AG News topic filter, same embedding model, managed 0.512. Measure it
-on your data.
-
+ 
 ---
 
 ## The cascade
