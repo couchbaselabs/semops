@@ -495,23 +495,15 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 ## Benchmarks
 
-**Models.** Embeddings are `BAAI/bge-small-en-v1.5` (local, 384-dim, no key). The LLM,
-where a real one is used, is `gemini-flash-latest` (Gemini's rolling latest-Flash alias,
-via the OpenAI-compatible endpoint).
+Embeddings are `BAAI/bge-small-en-v1.5` (384-dim). The LLM,
+ is `gemini-flash-latest` 
 
-**The table below is scored against an oracle stand-in, not a live LLM.** The stand-in is
-the dataset's own label (20 Newsgroups, Rotten Tomatoes), a regex (AG News), or a
+The table below is scored against an oracle, the dataset's own label (20 Newsgroups, Rotten Tomatoes), a regex (AG News), or a
 ground-truth rule (Emails, BioDEX). This isolates the machinery: it measures whether the
-vector index and cascade reproduce a *perfect* judge, and at how many fewer calls. That is
-why the numbers sit at 0.97 to 1.00; with a perfect judge the only thing being tested is
-whether the plumbing loses anything.
+vector index and cascade reproduce a *perfect* judge,  
 
-**With a real LLM.** Run against `gemini-flash-latest` on the polarity predicate, 50
-labelled reviews: **P 0.913, R 1.000, F1 0.955** versus the human labels. That is the
-LLM's own accuracy on the task, and it is the ceiling the operator tracks, because the
-cascade reproduces whatever the judge says (mistakes included). So read the table as "the
-cascade is near-lossless versus the judge," and this 0.955 as "how good the judge itself
-is."
+**With an LLM.** Run against `gemini-flash-latest` on the polarity predicate, 50
+labelled reviews: **P 0.913, R 1.000, F1 0.955** versus the human labels.  
 
 **How to read the `vector-only` column.** It is cosine similarity to the embedded
 predicate, cut at the threshold that maximises F1 *using the labels*. You cannot tune with
