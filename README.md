@@ -495,106 +495,41 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 ## Benchmarks
 
-Embeddings are `BAAI/bge-small-en-v1.5` (384-dim). The LLM,
- is `gemini-flash-latest` 
+**Models.** Embeddings `BAAI/bge-small-en-v1.5` (384-dim, local). LLM `gemini-flash-latest`.
 
-The table below is scored against an oracle, the dataset's own label (20 Newsgroups, Rotten Tomatoes), a regex (AG News), or a
-ground-truth rule (Emails, BioDEX). This isolates the machinery: it measures whether the
-vector index and cascade reproduce a *perfect* judge,  
+**Faithful runs: a real LLM decides.** Each operator run with Gemini as the judge, on a
+small labelled sample, scored against human labels. Small N is deliberate: quality
+plateaus fast (47 reviews gave essentially the same F1 as 50), and a free-tier key cannot
+do thousands of calls.
 
-**With an LLM.** Run against `gemini-flash-latest` on the polarity predicate, 50
-labelled reviews: **P 0.913, R 1.000, F1 0.955** versus the human labels.  
-
-**How to read the `vector-only` column.** It is cosine similarity to the embedded
-predicate, cut at the threshold that maximises F1 *using the labels*. is a generous ceiling: the best v
-ector search could do here.
-
-| benchmark | task | vector-only | **semops** | cost |
-|---|---|---|---|---|
-| [20 Newsgroups](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | topic filter | F1 0.914 | **0.978** | 5.39× fewer calls |
-| [Rotten Tomatoes](https://huggingface.co/datasets/cornell-movie-review-data/rotten_tomatoes) | polarity filter | F1 **0.661** (P=0.499) | **0.987** | 1.30× fewer calls |
-| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) 50k | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** | 5.18× fewer calls |
-| **[Emails](https://arxiv.org/abs/2510.08489)** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **0.955** | 110 vs 1000 calls |
-| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** (LOTUS/Abacus corpus) | paper ↔ reaction join | F1 **0.21** | **0.915** | 350 vs 48,600 (**139×**) |
-| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_group_by`, 7 topics | n/a | purity **0.900** | **0 LLM calls** |
-| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_dedup` | n/a | purity **1.000** | 37.7× fewer |
-
-Across all of them the cascade stays close to what asking the LLM about every row would
-have given, and blocking recall, not the cascade, is what limits join quality.
-
-
-Calibration costs a fixed number of oracle calls, so on a small collection it eats
-the budget. AG News, 50k rows on a live cluster, `sem_filter` at recall/precision
-0.9, label oracle:
-
-| rows | oracle calls | savings | F1 | escalate band |
-|---|---|---|---|---|
-| 2,000 | 854 | 2.34× | 0.981 | 43% |
-| 10,000 | 2,334 | 4.28× | 0.936 | 23% |
-| 25,000 | 5,240 | 4.77× | 0.951 | 21% |
-| 50,000 | 8,169 | **6.12×** | 0.933 | 16% |
-
-Two caveats. The saving grows with corpus size but **asymptotically,
-not linearly**. The escalate band converges to a roughly fixed fraction, so savings
-tend toward ~1/that fraction rather than climbing forever.
-
-Index-served vs scanning everything, same 50k collection:
-
-| | F1 | recall | oracle calls | rows scored | wall |
-|---|---|---|---|---|---|
-| scan-all + score-all | **0.933** | 0.915 | 8,169 | 50,000 | 9.1s |
-| `Session.sem_filter` (`ann_above`, nProbes=8) | 0.615 | 0.452 | 3,673 | 5,811 | **2.8s** |
-
-The index-served path is 3.3x faster and asks the oracle less than half as often, and
-it pays for both in recall. At this selectivity roughly 14,700 rows clear the threshold,
-which is well past the 8,192 cap a vector index scan allows, so it cannot return them
-all whatever `nProbes` is set to. Measured directly, `ann_above` reaches recall 1.000
-when the qualifying set fits under the cap and `nProbes` is raised to 64 (see the GSI
-section above).
-
-Use it for selective predicates, with `nProbes` tuned. For a filter that keeps a quarter
-of the corpus, scan.
-
-### When the proxy is weak
-
-The 50k rows above were filtered on "is about science or technology", which is topic-shaped
-and the corpus is literally labelled by topic. Re-run the same collection on *"quotes
-a specific dollar amount of money"*, a predicate the embedding was never organised
-around (dollar figures appear across World, Business and Sci/Tech alike):
-
-| | topic predicate | specific predicate |
+| operator | task | quality vs human labels |
 |---|---|---|
-| vector-only (oracle-tuned) | F1 0.512 (P 0.420) | **F1 0.348** (P 0.252) |
-| cascade vs oracle | F1 0.933 | **F1 0.971** (P 1.000, R 0.944) |
-| savings | 6.12× | 5.18× |
-| bands | accept 7,846 / reject 33,985 | **accept 0** / reject 40,349 |
-| τ⁺ | 1.264 | **+inf** |
+| `sem_filter` | "is a negative review", 47 reviews | **F1 0.947** |
+| `sem_join` | ticket to known-issue, 12 x 4 | **F1 1.000** |
+| `sem_dedup` | 18 tickets, 6 real groups | **F1 0.889** |
+| `sem_group_by` | 24 tickets, 3 topics | **purity 1.000** |
 
-First, **τ⁺ never certified, so the accept band
-vanished**. The proxy could not support precision 0.9 anywhere on the positive
-side, so nothing was auto-accepted and every kept row got an oracle call. That is
-the safe-degradation property doing its job: precision came out at exactly 1.000,
-and recall 0.944 still cleared its 0.9 target. A weak proxy costs money, not
-correctness.
+**Versus vector search alone.** The table below swaps the real LLM for a perfect oracle
+(the dataset's own label, or a ground-truth rule) to isolate the machinery from LLM error,
+and puts it beside using *cosine similarity as the judge*. `vector-only` is cosine to the
+embedded predicate at its best label-tuned threshold, a generous ceiling you cannot build
+in production.
 
-Second, **savings barely moved (6.12× → 5.18×) despite the proxy being far worse.**
-Savings here are driven by *selectivity*, not proxy quality: at ~6% true, the reject
-band is 40,349 rows, and rejecting confidently is a much easier statistical claim
-than accepting confidently. Selective predicates pay off even with a poor proxy,
-entirely through τ⁻.
+| benchmark | task | vector-only | **semops** |
+|---|---|---|---|
+| [20 Newsgroups](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | topic filter | F1 0.914 | **0.978** |
+| [Rotten Tomatoes](https://huggingface.co/datasets/cornell-movie-review-data/rotten_tomatoes) | polarity filter | F1 **0.661** (P=0.499) | **0.987** |
+| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) 50k | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** |
+| **[Emails](https://arxiv.org/abs/2510.08489)** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** |
+| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** (LOTUS/Abacus corpus) | paper to reaction join | F1 **0.21** | **1.00** |
+| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_group_by`, 7 topics | n/a | purity **0.900** |
+| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_dedup` | n/a | purity **1.000** |
 
-Caveat on the predicate: it is lexical, so it is arguably harsher on embeddings than a
-genuinely semantic one would be. Read it as evidence about how the cascade behaves when
-the proxy is weak, not as a claim that the operator is good at regex.
-
-The `vector-only` column across every benchmark spans **0.21 to 0.914**, and the low end
-is not exotic: polarity, contradiction, doc↔label matching, and anything the embedding
-was not organised around all land there. The operator stays at 0.97 to 1.00 throughout. Note
-also that the two AG News figures (0.512 topical, 0.348 specific) sit far below 20NG's
-0.914 on the same embedding model: which end of that range you get is a property of your
-corpus, not something you can read off the predicate. That is the case for learning the
-proxy from a labelled sample instead of trusting a phrase embedding, which is what `proxy_model`
-does.
+The spread in `vector-only` (0.18 to 0.914) is the point: similarity is fine on topical
+predicates and near-useless on polarity, contradiction, or doc-to-label matching. The
+operator stays high throughout because the LLM, not the embedding, makes the call. (The
+`semops` column here uses a perfect oracle, so it measures whether the cascade reproduces
+the judge, not the LLM's own accuracy; that is what the faithful table above shows.)
 
 ---
 
