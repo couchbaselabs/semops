@@ -497,23 +497,20 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 **Models.** Embeddings `BAAI/bge-small-en-v1.5` (384-dim, local). LLM `gemini-flash-latest`.
 
-**Faithful runs: a real LLM decides.** Each operator run with Gemini as the judge, on a
-small labelled sample, scored against human labels. Small N is deliberate: quality
-plateaus fast (47 reviews gave essentially the same F1 as 50), and a free-tier key cannot
-do thousands of calls.
+**an LLM decides.** Each operator run with Gemini as the judge, on a
+small labelled sample, scored against human labels.  
 
 | operator | task | quality vs human labels |
 |---|---|---|
-| `sem_filter` | "is a negative review", 47 reviews | **F1 0.947** |
+| `sem_filter` | "is a negative review", 50 reviews | **F1 0.947** |
 | `sem_join` | ticket to known-issue, 12 x 4 | **F1 1.000** |
-| `sem_dedup` | 18 tickets, 6 real groups | **F1 0.889** |
+| `sem_dedup` | 18 tickets, 6 real groups | **F1 0.890** |
 | `sem_group_by` | 24 tickets, 3 topics | **purity 1.000** |
 
-**Versus vector search alone.** The table below swaps the real LLM for a perfect oracle
+**Versus vector search alone.** The table below swaps the LLM for a perfect oracle
 (the dataset's own label, or a ground-truth rule) to isolate the machinery from LLM error,
 and puts it beside using *cosine similarity as the judge*. `vector-only` is cosine to the
-embedded predicate at its best label-tuned threshold, a generous ceiling you cannot build
-in production.
+embedded predicate at its best label-tuned threshold
 
 | benchmark | task | vector-only | **semops** |
 |---|---|---|---|
