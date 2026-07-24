@@ -662,7 +662,3 @@ python examples/bench_emails.py --oracle truth          # Trummer's join benchma
 python examples/bench_biodex.py --oracle truth          # LOTUS/Abacus corpus
 ```
 
-Deeper notes live in `docs/`: [`sem_filter.md`](docs/sem_filter.md),
-[`sem_join.md`](docs/sem_join.md),
-[`sem_dedup_and_group_by.md`](docs/sem_dedup_and_group_by.md), and
-[`gsi_notes.md`](docs/gsi_notes.md)
