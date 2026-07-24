@@ -495,15 +495,28 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 ## Benchmarks
 
-**How to read the `vector-only` column.** To filter with vector search alone you embed
-the predicate, score every row by cosine similarity to it, and keep the rows above some
-cut-off. The question is which cut-off.  
+**Models.** Embeddings are `BAAI/bge-small-en-v1.5` (local, 384-dim, no key). The LLM,
+where a real one is used, is `gemini-flash-latest` (Gemini's rolling latest-Flash alias,
+via the OpenAI-compatible endpoint).
 
-Here a few cut-offs were tried and reported the one that scored the best F1
-against the true labels. 
+**The table below is scored against an oracle stand-in, not a live LLM.** The stand-in is
+the dataset's own label (20 Newsgroups, Rotten Tomatoes), a regex (AG News), or a
+ground-truth rule (Emails, BioDEX). This isolates the machinery: it measures whether the
+vector index and cascade reproduce a *perfect* judge, and at how many fewer calls. That is
+why the numbers sit at 0.97 to 1.00; with a perfect judge the only thing being tested is
+whether the plumbing loses anything.
 
-So read that column as a ceiling: the best vector search could possibly do here, not what
-it would actually do (it could perform worse).
+**With a real LLM.** Run against `gemini-flash-latest` on the polarity predicate, 50
+labelled reviews: **P 0.913, R 1.000, F1 0.955** versus the human labels. That is the
+LLM's own accuracy on the task, and it is the ceiling the operator tracks, because the
+cascade reproduces whatever the judge says (mistakes included). So read the table as "the
+cascade is near-lossless versus the judge," and this 0.955 as "how good the judge itself
+is."
+
+**How to read the `vector-only` column.** It is cosine similarity to the embedded
+predicate, cut at the threshold that maximises F1 *using the labels*. You cannot tune with
+labels in production, so it is a generous ceiling: the best vector search could do here,
+not what it would actually do.
 
 | benchmark | task | vector-only | **semops** | cost |
 |---|---|---|---|---|
