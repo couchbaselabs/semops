@@ -532,9 +532,11 @@ Vector search ranks reviews by similarity to the phrase "a negative review," whi
 
 ## Limitations
 
-**The guarantee is relative to the oracle, not to truth.** Every number in this document
-is about "close to what the LLM would have said", NOT "correct". If your oracle is wrong
-about something, so is the result, and no threshold setting will catch it.
+**The guarantee is relative to the judge, not to truth.** The cascade certifies its accept
+and reject bands against the judge you provide (the LLM), not against ground truth. The
+operator is therefore only as correct as that judge: if the LLM is wrong about a row, so is
+the result, and no threshold setting will catch it. The benchmark table scores the LLM
+against human labels precisely to show how strong that ceiling is.
 
 **`block_k` decides join recall and there is no estimator.** If set too low, candidate
 pairs never form, so the LLM is never asked and recall is capped with nothing in the logs
