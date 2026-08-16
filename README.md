@@ -495,38 +495,38 @@ suits predicates selective enough to keep the qualifying set under the cap;
 
 ## Benchmarks
 
-**Models.** Embeddings `BAAI/bge-small-en-v1.5` (384-dim, local). LLM `gemini-flash-latest`.
+Embeddings `BAAI/bge-small-en-v1.5` (384-dim, local). LLM `gemini-flash-lite-latest`.
 
-**an LLM decides.** Each operator run with Gemini as the judge, on a
-small labelled sample, scored against human labels.  
+**Vector search alone vs the operator.** Each operator scored by F1 against labels: pure vector similarity versus the semantic operator with a real LLM doing the judging.
 
-| operator | task | quality vs human labels |
+| Operator | Vector search only | semops + `gemini-flash-lite-latest` |
 |---|---|---|
-| `sem_filter` | "is a negative review", 50 reviews | **F1 0.947** |
-| `sem_join` | ticket to known-issue, 12 x 4 | **F1 1.000** |
-| `sem_dedup` | 18 tickets, 6 real groups | **F1 0.890** |
-| `sem_group_by` | 24 tickets, 3 topics | **purity 1.000** |
+| `sem_filter` (Rotten Tomatoes, polarity) | 0.774 | **0.984** |
+| `sem_join` (20 Newsgroups, same topic) | 0.540 | **0.667** |
+| `sem_dedup` (20 Newsgroups, same topic) | 0.521 | **0.664** |
 
-**Versus vector search alone.** The table below swaps the LLM for a perfect oracle
-(the dataset's own label, or a ground-truth rule) to isolate the machinery from LLM error,
-and puts it beside using *cosine similarity as the judge*. `vector-only` is cosine to the
-embedded predicate at its best label-tuned threshold
+**Example (`sem_filter`).** Take a pile of movie reviews and keep only the negative ones. Two reviews:
 
-| benchmark | task | vector-only | **semops** |
+- A: *"I expected a boring, predictable disaster. Instead it is a gripping, unforgettable triumph."* (the reviewer loved it)
+- B: *"Beautifully shot and well-acted, but I checked my watch every ten minutes and walked out unmoved."* (the reviewer disliked it)
+
+Vector search ranks reviews by similarity to the phrase "a negative review," which in practice means "which reviews contain negative-sounding words." So it ranks A high, because A is full of *boring, predictable, disaster*, and ranks B low, because B is full of *beautifully, well-acted*. It gets both backwards: it keeps A and drops B. The verdict lives in the logic of the sentence, not its vocabulary, and similarity only sees the vocabulary. That is why vector-only lands near coin-flip precision, F1 0.774. `sem_filter` asks the model the actual question, "is this review negative?", for each row the cheap proxy is unsure about. It reads A as praise and B as a pan, drops A, keeps B, and reaches F1 0.984.
+
+**A note on `sem_join` and `sem_dedup`.** These are pair operators: the vector index first blocks (retrieves candidate pairs), then the LLM judges only those candidates. Their F1 is limited by blocking recall, not by the LLM. At a small block size the index surfaces only a fraction of the true pairs as candidates, so recall (and therefore F1) is capped before the model ever sees them. The LLM's precision on what it does see is high; moving these numbers is a retrieval lever (larger `block_k`, higher `nProbes`/`topNScan`, stronger or task-tuned embeddings), not a bigger model. The numbers above use each method at its best block size.
+
+**Batched adjudication (`sem_join`, `sem_dedup`).** The cost of judging pairs one at a time is what caps these operators, and Immanuel Trummer's work on efficient semantic joins (arXiv:2510.08489) shows the fix: batch a query row and all of its candidates into a single prompt and ask which of them match, so the call count stays flat as you widen the candidate set instead of growing with it. In our runs this took `sem_join` from F1 0.40 at 96 calls (one call per pair) to F1 0.67 at 12 calls (one prompt per row), cheaper and better at once. One thing we saw that the cost analysis does not cover: quality follows an inverted U as the batch grows. F1 rises to a peak around 24 candidates per prompt and then falls, driven entirely by recall, since precision stays near 0.9 throughout but the model quietly stops reporting some true matches once the candidate list gets long. This happened well inside the context window (about 20k characters at 69 candidates, easily within the model used), so the limit is the model's attention rather than the window, and the best batch size should be tuned to that recall ceiling for each model.
+
+| Adjudication | `block_k` | LLM calls | F1 |
 |---|---|---|---|
-| [20 Newsgroups](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | topic filter | F1 0.914 | **0.978** |
-| [Rotten Tomatoes](https://huggingface.co/datasets/cornell-movie-review-data/rotten_tomatoes) | polarity filter | F1 **0.661** (P=0.499) | **0.987** |
-| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) 50k | "quotes a dollar amount" | F1 **0.348** (P=0.252) | **0.971** |
-| **[Emails](https://arxiv.org/abs/2510.08489)** (Trummer 2510.08489) | contradiction join | F1 **0.18** | **1.00** |
-| **[BioDEX](https://huggingface.co/datasets/BioDEX/BioDEX-ICSR)** ([LOTUS](https://arxiv.org/abs/2407.11418)/[Abacus](https://arxiv.org/abs/2505.14661) corpus) | paper to reaction join | F1 **0.21** | **1.00** |
-| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_group_by`, 7 topics | n/a | purity **0.900** |
-| [20NG](https://scikit-learn.org/stable/datasets/real_world.html#the-20-newsgroups-text-dataset) | `sem_dedup` | n/a | purity **1.000** |
-
-The spread in `vector-only` (0.18 to 0.914) is the point: similarity is fine on topical
-predicates and near-useless on polarity, contradiction, or doc-to-label matching. The
-operator stays high throughout because the LLM, not the embedding, makes the call. (The
-`semops` column here uses a perfect oracle, so it measures whether the cascade reproduces
-the judge, not the LLM's own accuracy; that is what the faithful table above shows.)
+| per-pair | 8 | 96 | 0.40 |
+| per-pair | 16 | 192 | 0.57 |
+| per-pair | 24 | 288 | 0.62 |
+| block-batched | 8 | 12 | 0.37 |
+| block-batched | 16 | 12 | 0.56 |
+| block-batched | 24 | 12 | **0.67** |
+| block-batched | 32 | 12 | 0.59 |
+| block-batched | 48 | 12 | 0.54 |
+| block-batched | 69 | 12 | 0.35 |
 
 ---
 
