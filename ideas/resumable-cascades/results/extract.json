@@ -1,0 +1,57 @@
+{
+  "model": "Qwen/Qwen3-8B",
+  "n_layers": 36,
+  "hidden": 4096,
+  "yes_ids": [
+    7414,
+    9454,
+    9693,
+    9834
+  ],
+  "no_ids": [
+    902,
+    2152,
+    2308,
+    2753
+  ],
+  "predicates": {
+    "rt_positive": {
+      "rows": 2000,
+      "base_rate_gt": 0.499,
+      "base_rate_model": 0.4785,
+      "model_accuracy_vs_gt": 0.9095,
+      "top1_is_yes_or_no": 1.0,
+      "mean_prompt_tokens": 57.7245,
+      "extract_seconds": 44.53
+    },
+    "ag_business": {
+      "rows": 2000,
+      "base_rate_gt": 0.2605,
+      "base_rate_model": 0.4345,
+      "model_accuracy_vs_gt": 0.773,
+      "top1_is_yes_or_no": 1.0,
+      "mean_prompt_tokens": 83.699,
+      "extract_seconds": 59.27
+    },
+    "ag_scitech": {
+      "rows": 2000,
+      "base_rate_gt": 0.241,
+      "base_rate_model": 0.274,
+      "model_accuracy_vs_gt": 0.862,
+      "top1_is_yes_or_no": 1.0,
+      "mean_prompt_tokens": 82.699,
+      "extract_seconds": 58.18
+    }
+  },
+  "exactness": {
+    "resume_from_8_max_abs_diff": 0.0,
+    "resume_from_8_same_answer": true,
+    "resume_from_12_max_abs_diff": 0.0,
+    "resume_from_12_same_answer": true,
+    "resume_from_20_max_abs_diff": 0.0,
+    "resume_from_20_same_answer": true,
+    "manual_vs_hf_forward_max_abs_diff": 0.0,
+    "manual_vs_hf_forward_same_answer": true
+  },
+  "note": "predicates block restored from the first run's log; extraction ran on an NVIDIA L4, timing on an NVIDIA A10"
+}
