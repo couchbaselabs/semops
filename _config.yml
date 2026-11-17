@@ -1,0 +1,86 @@
+# GitHub Pages site for semops: https://couchbaselabs.github.io/semops/
+#
+# The site renders the repository's own Markdown in place: README.md is the home
+# page, and docs/, FINDINGS.md and ideas/ appear under it. Navigation is set by
+# path in `defaults` below, so the Markdown files need no front matter and read the
+# same on GitHub as on the site.
+#
+# Build source: the `main` branch, repository root (Settings > Pages).
+
+title: semops
+description: >-
+  Semantic operators over vector-indexed data. LLM-judged WHERE, JOIN, dedup and
+  group-by, made affordable by a vector index and a cascade with accuracy guarantees.
+url: https://couchbaselabs.github.io
+baseurl: /semops
+
+remote_theme: just-the-docs/just-the-docs@v0.12.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+
+relative_links:
+  enabled: true
+  collections: false
+titles_from_headings:
+  enabled: true
+  strip_title: false
+
+search_enabled: true
+heading_anchors: true
+back_to_top: true
+back_to_top_text: "Back to top"
+aux_links:
+  "semops on GitHub": https://github.com/couchbaselabs/semops
+aux_links_new_tab: true
+gh_edit_link: true
+gh_edit_link_text: "View or edit this page on GitHub"
+gh_edit_repository: https://github.com/couchbaselabs/semops
+gh_edit_branch: main
+gh_edit_view_mode: tree
+footer_content: >-
+  semops is released under the Apache License 2.0.
+  Numbers on these pages come from the experiments recorded in the repository.
+
+exclude:
+  - src/
+  - tests/
+  - examples/
+  - go/
+  - .venv/
+  - pyproject.toml
+  - LICENSE
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - docs/paper-skeleton.md
+  - ideas/resumable-cascades/cache/
+  - ideas/resumable-cascades/experiment.py
+  - ideas/resumable-cascades/modal_run.py
+
+# Navigation, by file path. Lower nav_order sorts first.
+defaults:
+  - scope: { path: "" }
+    values: { layout: default }
+  - scope: { path: "README.md" }
+    values: { title: Home, nav_order: 1 }
+  - scope: { path: "docs/sem_filter.md" }
+    values: { title: sem_filter, parent: Operators, nav_order: 1 }
+  - scope: { path: "docs/sem_join.md" }
+    values: { title: sem_join, parent: Operators, nav_order: 2 }
+  - scope: { path: "docs/sem_dedup_and_group_by.md" }
+    values: { title: sem_dedup and sem_group_by, parent: Operators, nav_order: 3 }
+  - scope: { path: "docs/gsi_notes.md" }
+    values: { title: GSI vector index notes, nav_order: 3 }
+  - scope: { path: "FINDINGS.md" }
+    values: { title: Findings, parent: Research, nav_order: 1 }
+  - scope: { path: "docs/optimizing-semantic-joins.md" }
+    values: { title: Optimizing semantic joins, parent: Research, nav_order: 2 }
+  - scope: { path: "docs/semantic-join-everything.md" }
+    values: { title: "Semantic join: complete record", parent: Research, nav_order: 3 }
+  - scope: { path: "ideas/resumable-cascades/README.md" }
+    values: { title: Resumable cascades, parent: Research, nav_order: 4 }
